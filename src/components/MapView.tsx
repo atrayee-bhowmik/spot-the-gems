@@ -10,13 +10,82 @@ interface MapViewProps {
 
 const MapView: React.FC<MapViewProps> = ({ businesses, userLocation }) => {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
+  const mapInstanceRef = useRef<google.maps.Map | null>(null);
 
   useEffect(() => {
-    // Since Google Maps API is not loaded, we'll show a placeholder
-    // In a real implementation, you would load the Google Maps JavaScript API
-    console.log('Map would display user location:', userLocation);
-    console.log('Map would display businesses:', businesses);
+    if (!mapRef.current || !window.google) return;
+
+    // Initialize the map
+    mapInstanceRef.current = new google.maps.Map(mapRef.current, {
+      center: userLocation,
+      zoom: 14,
+      styles: [
+        {
+          featureType: 'poi',
+          elementType: 'labels',
+          stylers: [{ visibility: 'off' }]
+        }
+      ]
+    });
+
+    // Add user location marker
+    new google.maps.Marker({
+      position: userLocation,
+      map: mapInstanceRef.current,
+      title: 'Your Location',
+      icon: {
+        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="8" fill="#3B82F6"/>
+            <circle cx="12" cy="12" r="3" fill="white"/>
+          </svg>
+        `),
+        scaledSize: new google.maps.Size(24, 24),
+        anchor: new google.maps.Point(12, 12)
+      }
+    });
+
+    // Add business markers
+    businesses.forEach((business) => {
+      // For demo purposes, we'll place businesses at random locations near the user
+      const lat = userLocation.lat + (Math.random() - 0.5) * 0.02;
+      const lng = userLocation.lng + (Math.random() - 0.5) * 0.02;
+      
+      const marker = new google.maps.Marker({
+        position: { lat, lng },
+        map: mapInstanceRef.current,
+        title: business.name,
+        icon: {
+          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#EF4444"/>
+            </svg>
+          `),
+          scaledSize: new google.maps.Size(24, 24),
+          anchor: new google.maps.Point(12, 24)
+        }
+      });
+
+      // Add info window
+      const infoWindow = new google.maps.InfoWindow({
+        content: `
+          <div style="padding: 8px; max-width: 200px;">
+            <h3 style="margin: 0 0 4px 0; font-weight: bold;">${business.name}</h3>
+            <p style="margin: 0 0 4px 0; color: #666; font-size: 12px;">${business.type}</p>
+            <div style="display: flex; align-items: center; margin-bottom: 4px;">
+              <span style="color: #fbbf24;">★</span>
+              <span style="margin-left: 4px; font-size: 14px;">${business.rating.toFixed(1)} (${business.reviewCount} reviews)</span>
+            </div>
+            <p style="margin: 0; font-size: 12px; color: #666;">${business.address}</p>
+          </div>
+        `
+      });
+
+      marker.addListener('click', () => {
+        infoWindow.open(mapInstanceRef.current, marker);
+      });
+    });
+
   }, [businesses, userLocation]);
 
   return (
@@ -24,33 +93,15 @@ const MapView: React.FC<MapViewProps> = ({ businesses, userLocation }) => {
       <h3 className="text-lg font-semibold text-gray-900 mb-4">Map View</h3>
       <div 
         ref={mapRef} 
-        className="w-full h-96 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-100 border-2 border-dashed border-blue-200"
+        className="w-full h-96 rounded-lg border border-gray-200"
         style={{ minHeight: '400px' }}
       >
-        <div className="w-full h-full flex flex-col items-center justify-center p-8">
-          <MapPin className="h-16 w-16 text-blue-500 mb-4" />
-          <div className="text-center">
-            <p className="text-gray-700 font-semibold mb-2">Interactive Map Preview</p>
-            <p className="text-sm text-gray-600 mb-4">
-              Google Maps integration would display here with:
-            </p>
-            <div className="bg-white rounded-lg p-4 shadow-sm max-w-md">
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <span>Your location: {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span>{businesses.length} business markers</span>
-                </div>
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mt-4">
-              To enable live mapping, add Google Maps JavaScript API key
-            </p>
+        {!window.google && (
+          <div className="w-full h-full flex flex-col items-center justify-center p-8 bg-gradient-to-br from-blue-50 to-indigo-100">
+            <MapPin className="h-16 w-16 text-blue-500 mb-4" />
+            <p className="text-gray-700 font-semibold">Loading Google Maps...</p>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
