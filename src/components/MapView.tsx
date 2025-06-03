@@ -10,18 +10,17 @@ interface MapViewProps {
 
 const MapView: React.FC<MapViewProps> = ({ businesses, userLocation }) => {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<google.maps.Map | null>(null);
+  const mapInstanceRef = useRef<any>(null);
 
   useEffect(() => {
     if (!mapRef.current || !window.google) return;
 
-    console.log('Initializing map with user location:', userLocation);
-    console.log('Businesses to display:', businesses);
+    console.log('Initializing map with businesses:', businesses);
 
-    // Initialize the map
-    mapInstanceRef.current = new google.maps.Map(mapRef.current, {
-      center: userLocation,
-      zoom: 13,
+    // Initialize the map centered on San Francisco
+    mapInstanceRef.current = new window.google.maps.Map(mapRef.current, {
+      center: { lat: 37.7749, lng: -122.4194 }, // San Francisco center
+      zoom: 12,
       styles: [
         {
           featureType: 'poi',
@@ -31,53 +30,60 @@ const MapView: React.FC<MapViewProps> = ({ businesses, userLocation }) => {
       ]
     });
 
-    // Add user location marker (blue dot)
-    new google.maps.Marker({
-      position: userLocation,
-      map: mapInstanceRef.current,
-      title: 'Your Current Location',
-      icon: {
-        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="8" fill="#3B82F6"/>
-            <circle cx="12" cy="12" r="3" fill="white"/>
-          </svg>
-        `),
-        scaledSize: new google.maps.Size(24, 24),
-        anchor: new google.maps.Point(12, 12)
-      }
-    });
-
     // Add business markers using real coordinates from mock data
     businesses.forEach((business) => {
       console.log(`Adding marker for ${business.name} at lat: ${business.lat}, lng: ${business.lng}`);
       
-      const marker = new google.maps.Marker({
+      const marker = new window.google.maps.Marker({
         position: { lat: business.lat, lng: business.lng },
         map: mapInstanceRef.current,
         title: business.name,
         icon: {
           url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#EF4444"/>
             </svg>
           `),
-          scaledSize: new google.maps.Size(24, 24),
-          anchor: new google.maps.Point(12, 24)
+          scaledSize: new window.google.maps.Size(32, 32),
+          anchor: new window.google.maps.Point(16, 32)
         }
       });
 
-      // Add info window with business details
-      const infoWindow = new google.maps.InfoWindow({
+      // Generate a placeholder image URL
+      const placeholderImage = `https://images.unsplash.com/photo-1649972904349-6e44c42644a7?w=200&h=120&fit=crop&crop=center`;
+
+      // Add info window with business details and mock image
+      const infoWindow = new window.google.maps.InfoWindow({
         content: `
-          <div style="padding: 8px; max-width: 200px;">
-            <h3 style="margin: 0 0 4px 0; font-weight: bold;">${business.name}</h3>
-            <p style="margin: 0 0 4px 0; color: #666; font-size: 12px;">${business.type}</p>
-            <div style="display: flex; align-items: center; margin-bottom: 4px;">
-              <span style="color: #fbbf24;">★</span>
-              <span style="margin-left: 4px; font-size: 14px;">${business.rating.toFixed(1)} (${business.reviewCount} reviews)</span>
+          <div style="padding: 12px; max-width: 280px; font-family: Arial, sans-serif;">
+            <img src="${placeholderImage}" alt="${business.name}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;" />
+            <h3 style="margin: 0 0 6px 0; font-weight: bold; font-size: 16px; color: #1f2937;">${business.name}</h3>
+            <p style="margin: 0 0 6px 0; color: #6b7280; font-size: 13px; text-transform: capitalize;">${business.type}</p>
+            <div style="display: flex; align-items: center; margin-bottom: 6px;">
+              <span style="color: #fbbf24; font-size: 16px;">★</span>
+              <span style="margin-left: 4px; font-size: 14px; font-weight: 500;">${business.rating.toFixed(1)}</span>
+              <span style="margin-left: 4px; font-size: 12px; color: #6b7280;">(${business.reviewCount} reviews)</span>
             </div>
-            <p style="margin: 0; font-size: 12px; color: #666;">${business.address}</p>
+            <p style="margin: 0 0 12px 0; font-size: 12px; color: #6b7280; line-height: 1.4;">${business.address}</p>
+            <button 
+              onclick="window.open('https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(business.address)}', '_blank')"
+              style="
+                background-color: #3b82f6; 
+                color: white; 
+                border: none; 
+                padding: 8px 16px; 
+                border-radius: 6px; 
+                font-size: 12px; 
+                font-weight: 500;
+                cursor: pointer;
+                width: 100%;
+                transition: background-color 0.2s;
+              "
+              onmouseover="this.style.backgroundColor='#2563eb'"
+              onmouseout="this.style.backgroundColor='#3b82f6'"
+            >
+              Get Directions
+            </button>
           </div>
         `
       });
