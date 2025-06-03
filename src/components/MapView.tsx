@@ -15,10 +15,13 @@ const MapView: React.FC<MapViewProps> = ({ businesses, userLocation }) => {
   useEffect(() => {
     if (!mapRef.current || !window.google) return;
 
+    console.log('Initializing map with user location:', userLocation);
+    console.log('Businesses to display:', businesses);
+
     // Initialize the map
     mapInstanceRef.current = new google.maps.Map(mapRef.current, {
       center: userLocation,
-      zoom: 14,
+      zoom: 13,
       styles: [
         {
           featureType: 'poi',
@@ -28,11 +31,11 @@ const MapView: React.FC<MapViewProps> = ({ businesses, userLocation }) => {
       ]
     });
 
-    // Add user location marker
+    // Add user location marker (blue dot)
     new google.maps.Marker({
       position: userLocation,
       map: mapInstanceRef.current,
-      title: 'Your Location',
+      title: 'Your Current Location',
       icon: {
         url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -45,14 +48,12 @@ const MapView: React.FC<MapViewProps> = ({ businesses, userLocation }) => {
       }
     });
 
-    // Add business markers
+    // Add business markers using real coordinates from mock data
     businesses.forEach((business) => {
-      // For demo purposes, we'll place businesses at random locations near the user
-      const lat = userLocation.lat + (Math.random() - 0.5) * 0.02;
-      const lng = userLocation.lng + (Math.random() - 0.5) * 0.02;
+      console.log(`Adding marker for ${business.name} at lat: ${business.lat}, lng: ${business.lng}`);
       
       const marker = new google.maps.Marker({
-        position: { lat, lng },
+        position: { lat: business.lat, lng: business.lng },
         map: mapInstanceRef.current,
         title: business.name,
         icon: {
@@ -66,7 +67,7 @@ const MapView: React.FC<MapViewProps> = ({ businesses, userLocation }) => {
         }
       });
 
-      // Add info window
+      // Add info window with business details
       const infoWindow = new google.maps.InfoWindow({
         content: `
           <div style="padding: 8px; max-width: 200px;">
@@ -90,7 +91,9 @@ const MapView: React.FC<MapViewProps> = ({ businesses, userLocation }) => {
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-blue-100 p-4">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Map View</h3>
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        Live Map View - {businesses.length} Low-Rated Businesses Found
+      </h3>
       <div 
         ref={mapRef} 
         className="w-full h-96 rounded-lg border border-gray-200"
